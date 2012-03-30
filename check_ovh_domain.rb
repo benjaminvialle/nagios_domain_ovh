@@ -97,7 +97,7 @@ class DOMAIN
       if (Time.parse(expiration.to_s) - Time.parse(DateTime.now.to_s)) > 2592000
         puts "WHOIS OK: Expires #{expiration.to_s} at ovh (#{domain})"
         exit 0 if ARGV.length == 1
-      elsif (Time.parse(DateTime.now.to_s) - Time.parse(expiration.to_s)) > 1296000
+      elsif (Time.parse(expiration.to_s) - Time.parse(DateTime.now.to_s)) > 1296000
         puts "WHOIS WARNING: Expires #{expiration.to_s} at ovh (#{domain})"
         exit 1 if ARGV.length == 1
       else
