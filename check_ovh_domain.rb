@@ -15,6 +15,8 @@
 begin
   # in order to use SOAP API access
   require 'savon'
+  # in order to log
+  require 'logger'
   # nokogiri parser
   require 'nokogiri'
   # in order to parse console arguments
@@ -49,6 +51,11 @@ class DOMAIN
   client = Savon::Client.new do
     wsdl.document = DOMAIN::WSDL_URI
   end
+
+  # Nagios needs to have logging messages printed to stdout
+  log = Logger.new(STDOUT)
+  # Set the log level here
+  log.level = Logger::INFO
 
   begin
     expirations = {}
@@ -100,6 +107,6 @@ class DOMAIN
     end
 
   rescue Savon::SOAP::Fault => fault
-    log fault.to_s
+    log.error fault.to_s
   end
 end
