@@ -8,7 +8,6 @@ source 'http://rubygems.org'
 # Bundler requires these gems in all environments
 gem 'savon'
 gem 'nokogiri'
-gem 'action_view'
 gem 'logger'
 
 # Other development related required gems. You don't need them

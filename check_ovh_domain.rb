@@ -19,9 +19,6 @@ begin
   require 'nokogiri'
   # in order to parse console arguments
   require 'getoptlong'
-  # action_view to calculate time remaining before warning
-  require 'action_view'
-  include ActionView::Helpers::DateHelper
 rescue LoadError => e
   $stderr.puts "Required library not found: '#{e.message}'."
   exit(2)
@@ -50,7 +47,7 @@ class DOMAIN
   MULTISESSION = false
 
   client = Savon::Client.new do
-    wsdl.document = 'http://www.ovh.com/soapi/soapi-re-1.34.wsdl'
+    wsdl.document = DOMAIN::WSDL_URI
   end
 
   begin
@@ -58,22 +55,26 @@ class DOMAIN
 
     response = client.request :wsdl, :login do
       soap.body = {
-        nic: 'xxxxxxxx',
-        password: 'xxxxxxxx',
-        language: 'fr',
-        multisession: false
+        nic:          DOMAIN::LOGIN,
+        password:     DOMAIN::PASSWORD,
+        language:     DOMAIN::LANGUAGE,
+        multisession: DOMAIN::MULTISESSION
       }
     end
 
     session = response[:login_response][:return]
 
-    response = client.request :wsdl, :domain_list do
-      soap.body = {
-        session: session,
-      }
-    end
+    if ARGV.length == 0
+      response = client.request :wsdl, :domain_list do
+        soap.body = {
+          session: session,
+        }
+      end
 
-    domains = response.to_hash[:domain_list_response][:return][:item]
+      domains = response.to_hash[:domain_list_response][:return][:item]
+    else
+      domains = ARGV
+    end
 
     domains.each do |domain|
       response = client.request :wsdl, :domain_info do
@@ -86,7 +87,16 @@ class DOMAIN
     end
 
     expirations.each do |domain, expiration|
-      puts "#{domain}: #{expiration.to_s} - #{distance_of_time_in_words_to_now(expiration)}"
+      if (Time.parse(expiration.to_s) - Time.parse(DateTime.now.to_s)) > 2592000
+        puts "WHOIS OK: Expires #{expiration.to_s} at ovh (#{domain})"
+        exit 0 if ARGV.length == 1
+      elsif (Time.parse(DateTime.now.to_s) - Time.parse(expiration.to_s)) > 1296000
+        puts "WHOIS WARNING: Expires #{expiration.to_s} at ovh (#{domain})"
+        exit 1 if ARGV.length == 1
+      else
+        puts "WHOIS CRITICAL: Expires #{expiration.to_s} at ovh (#{domain})"
+        exit 2 if ARGV.length == 1
+      end
     end
 
   rescue Savon::SOAP::Fault => fault
